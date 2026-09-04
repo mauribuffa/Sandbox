@@ -1,4 +1,4 @@
-import { UserButton } from "@clerk/nextjs"
+import { OrganizationSwitcher, UserButton } from "@clerk/nextjs"
 import { auth } from "@clerk/nextjs/server"
 import Image from "next/image"
 
@@ -15,10 +15,10 @@ export default async function Page() {
   await auth.protect({ unauthenticatedUrl: "/sign-in" })
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6">
       <Empty className="flex-none">
-        <EmptyHeader>
-          <EmptyMedia>
+        <EmptyHeader className="gap-3">
+          <EmptyMedia className="mb-4">
             <Image src={logo} alt="Logo" />
           </EmptyMedia>
           <EmptyTitle className="text-2xl">
@@ -30,7 +30,10 @@ export default async function Page() {
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
-      <UserButton />
+      <div className="flex flex-col items-center gap-3">
+        <UserButton />
+        <OrganizationSwitcher />
+      </div>
     </div>
   )
 }
