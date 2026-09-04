@@ -1,3 +1,5 @@
+import { UserButton } from "@clerk/nextjs"
+import { auth } from "@clerk/nextjs/server"
 import Image from "next/image"
 
 import logo from "./icon.svg"
@@ -9,10 +11,12 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 
-export default function Page() {
+export default async function Page() {
+  await auth.protect({ unauthenticatedUrl: "/sign-in" })
+
   return (
-    <div className="flex min-h-svh">
-      <Empty>
+    <div className="flex min-h-svh flex-col items-center justify-center">
+      <Empty className="flex-none">
         <EmptyHeader>
           <EmptyMedia>
             <Image src={logo} alt="Logo" />
@@ -26,6 +30,7 @@ export default function Page() {
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
+      <UserButton />
     </div>
   )
 }
