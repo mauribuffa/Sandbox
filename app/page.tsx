@@ -1,5 +1,6 @@
 import Image from "next/image"
 
+import logo from "./icon.svg"
 import {
   Empty,
   EmptyDescription,
@@ -14,7 +15,7 @@ export default function Page() {
       <Empty>
         <EmptyHeader>
           <EmptyMedia>
-            <Image src="/logo.svg" alt="Logo" width={48} height={48} />
+            <Image src={logo} alt="Logo" />
           </EmptyMedia>
           <EmptyTitle className="text-2xl">
             What should we build today?
