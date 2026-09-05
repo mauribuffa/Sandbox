@@ -1,17 +1,6 @@
 "use client"
 
-import {
-  ArrowUp,
-  Box,
-  Car,
-  ChevronDown,
-  Crosshair,
-  Gamepad2,
-  Grip,
-  Plane,
-  Swords,
-  Zap,
-} from "lucide-react"
+import { ArrowUp, ChevronDown, Grip } from "lucide-react"
 import { useState, useTransition } from "react"
 
 import { createGame } from "@/lib/games/actions"
@@ -29,16 +18,6 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group"
 
-const suggestions = [
-  { icon: Box, label: "Voxel survival" },
-  { icon: Swords, label: "Ink samurai duel" },
-  { icon: Zap, label: "Comic-book firefight" },
-  { icon: Plane, label: "Realistic battlefield" },
-  { icon: Crosshair, label: "Fight-first shooter" },
-  { icon: Car, label: "Jungle expedition drive" },
-  { icon: Gamepad2, label: "Sunny kingdom platformer" },
-]
-
 export function ChatComposer() {
   const [prompt, setPrompt] = useState("")
   const [isPending, startTransition] = useTransition()
@@ -53,7 +32,7 @@ export function ChatComposer() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-6">
+    <div className="flex w-full flex-col">
       <InputGroup className="bg-popover">
         <InputGroupTextarea
           placeholder="Describe the game you want to build…"
@@ -92,14 +71,6 @@ export function ChatComposer() {
           </Button>
         </InputGroupAddon>
       </InputGroup>
-      <div className="flex flex-wrap justify-center gap-2">
-        {suggestions.map(({ icon: Icon, label }) => (
-          <Button key={label} variant="outline" size="sm" className="rounded-full font-normal text-muted-foreground">
-            <Icon />
-            {label}
-          </Button>
-        ))}
-      </div>
     </div>
   )
 }

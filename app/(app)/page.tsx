@@ -4,6 +4,7 @@ import Image from "next/image"
 
 import logo from "../icon.svg"
 import { ChatComposer } from "@/components/chat-composer"
+import { Button } from "@/components/ui/button"
 import {
   Empty,
   EmptyContent,
@@ -12,6 +13,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
+import { suggestions } from "@/lib/game/suggestions"
 
 export default async function Page() {
   await auth.protect({ unauthenticatedUrl: "/sign-in" })
@@ -31,8 +33,21 @@ export default async function Page() {
             own words. If you can describe it, you can play it.
           </EmptyDescription>
         </EmptyHeader>
-        <EmptyContent className="max-w-2xl">
+        <EmptyContent className="max-w-2xl gap-6">
           <ChatComposer />
+          <div className="flex flex-wrap justify-center gap-2">
+            {suggestions.map(({ icon: Icon, label }) => (
+              <Button
+                key={label}
+                variant="outline"
+                size="sm"
+                className="rounded-full font-normal text-muted-foreground"
+              >
+                <Icon />
+                {label}
+              </Button>
+            ))}
+          </div>
         </EmptyContent>
       </Empty>
       <div className="flex flex-col items-center gap-3">
