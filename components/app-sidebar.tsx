@@ -31,9 +31,12 @@ export function AppSidebar() {
   const pathname = usePathname()
 
   return (
-    <Sidebar>
-      <SidebarHeader className="flex-row items-center justify-between">
-        <SidebarMenuButton className="w-fit" render={<Link href="/" />}>
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="flex-row items-center justify-between group-data-[collapsible=icon]:justify-center">
+        <SidebarMenuButton
+          className="w-fit group-data-[collapsible=icon]:hidden"
+          render={<Link href="/" />}
+        >
           <Image
             src="/logo.svg"
             alt="Sandbox"
