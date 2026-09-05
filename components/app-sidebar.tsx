@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { OrganizationSwitcher, UserButton } from "@clerk/nextjs"
 import { CoinsIcon, Gamepad2Icon, PlusIcon, SquarePenIcon } from "lucide-react"
 import Image from "next/image"
@@ -12,6 +13,12 @@ import {
   EmptyHeader,
   EmptyMedia,
 } from "@/components/ui/empty"
+import {
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import {
   Sidebar,
   SidebarContent,
@@ -33,6 +40,7 @@ export function AppSidebar({
   games: { id: string; title: string }[]
 }) {
   const pathname = usePathname()
+  const [recentsOpen, setRecentsOpen] = useState(false)
 
   return (
     <Sidebar collapsible="icon">
@@ -75,7 +83,11 @@ export function AppSidebar({
               <SidebarMenu>
                 {games.map((game) => (
                   <SidebarMenuItem key={game.id}>
-                    <SidebarMenuButton className="group-data-[collapsible=icon]:hidden">
+                    <SidebarMenuButton
+                      className="group-data-[collapsible=icon]:hidden"
+                      isActive={pathname === `/games/${game.id}`}
+                      render={<Link href={`/games/${game.id}`} />}
+                    >
                       <Gamepad2Icon />
                       <span className="truncate">{game.title}</span>
                     </SidebarMenuButton>
@@ -89,6 +101,38 @@ export function AppSidebar({
                 </EmptyDescription>
               </Empty>
             )}
+            <SidebarMenu className="hidden group-data-[collapsible=icon]:flex">
+              <SidebarMenuItem>
+                <Popover open={recentsOpen} onOpenChange={setRecentsOpen}>
+                  <SidebarMenuButton render={<PopoverTrigger />}>
+                    <Gamepad2Icon />
+                    <span>Recents</span>
+                  </SidebarMenuButton>
+                  <PopoverContent side="right" align="start" className="w-56 p-1">
+                    {games.length > 0 ? (
+                      <SidebarMenu>
+                        {games.map((game) => (
+                          <SidebarMenuItem key={game.id}>
+                            <SidebarMenuButton
+                              isActive={pathname === `/games/${game.id}`}
+                              onClick={() => setRecentsOpen(false)}
+                              render={<Link href={`/games/${game.id}`} />}
+                            >
+                              <Gamepad2Icon />
+                              <span className="truncate">{game.title}</span>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                    ) : (
+                      <PopoverDescription className="p-2 text-xs">
+                        Your games will live here.
+                      </PopoverDescription>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </SidebarMenuItem>
+            </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
