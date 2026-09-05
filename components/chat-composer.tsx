@@ -12,7 +12,9 @@ import {
   Swords,
   Zap,
 } from "lucide-react"
+import { useState, useTransition } from "react"
 
+import { createGame } from "@/lib/games/actions"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -38,6 +40,18 @@ const suggestions = [
 ]
 
 export function ChatComposer() {
+  const [prompt, setPrompt] = useState("")
+  const [isPending, startTransition] = useTransition()
+
+  function submit() {
+    const trimmed = prompt.trim()
+    if (!trimmed || isPending) return
+    startTransition(async () => {
+      await createGame(trimmed)
+      setPrompt("")
+    })
+  }
+
   return (
     <div className="flex w-full flex-col gap-6">
       <InputGroup className="bg-popover">
@@ -45,6 +59,15 @@ export function ChatComposer() {
           placeholder="Describe the game you want to build…"
           rows={1}
           className="field-sizing-content max-h-48 min-h-10"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault()
+              submit()
+            }
+          }}
+          disabled={isPending}
         />
         <InputGroupAddon align="block-end">
           <DropdownMenu>
@@ -59,7 +82,12 @@ export function ChatComposer() {
               <DropdownMenuItem>Kimi K1.5</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button size="icon" className="ml-auto rounded-full">
+          <Button
+            size="icon"
+            className="ml-auto rounded-full"
+            onClick={submit}
+            disabled={isPending || !prompt.trim()}
+          >
             <ArrowUp />
           </Button>
         </InputGroupAddon>

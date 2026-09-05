@@ -27,7 +27,11 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 
-export function AppSidebar() {
+export function AppSidebar({
+  games,
+}: {
+  games: { id: string; title: string }[]
+}) {
   const pathname = usePathname()
 
   return (
@@ -67,11 +71,24 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Recents</SidebarGroupLabel>
           <SidebarGroupContent>
-            <Empty className="border p-2 group-data-[collapsible=icon]:hidden">
-              <EmptyDescription className="text-xs">
-                Your games will live here.
-              </EmptyDescription>
-            </Empty>
+            {games.length > 0 ? (
+              <SidebarMenu>
+                {games.map((game) => (
+                  <SidebarMenuItem key={game.id}>
+                    <SidebarMenuButton className="group-data-[collapsible=icon]:hidden">
+                      <Gamepad2Icon />
+                      <span className="truncate">{game.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            ) : (
+              <Empty className="border p-2 group-data-[collapsible=icon]:hidden">
+                <EmptyDescription className="text-xs">
+                  Your games will live here.
+                </EmptyDescription>
+              </Empty>
+            )}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
