@@ -1,9 +1,7 @@
 "use client"
 
 import { ArrowUp, ChevronDown, Grip } from "lucide-react"
-import { useState, useTransition } from "react"
 
-import { createGame } from "@/lib/games/actions"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -18,17 +16,24 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group"
 
-export function ChatComposer() {
-  const [prompt, setPrompt] = useState("")
-  const [isPending, startTransition] = useTransition()
+type ChatComposerProps = {
+  value: string
+  onValueChange: (value: string) => void
+  onSubmit: () => void
+  disabled?: boolean
+}
+
+export function ChatComposer({
+  value,
+  onValueChange,
+  onSubmit,
+  disabled,
+}: ChatComposerProps) {
+  const canSubmit = !disabled && value.trim().length > 0
 
   function submit() {
-    const trimmed = prompt.trim()
-    if (!trimmed || isPending) return
-    startTransition(async () => {
-      await createGame(trimmed)
-      setPrompt("")
-    })
+    if (!canSubmit) return
+    onSubmit()
   }
 
   return (
@@ -38,15 +43,15 @@ export function ChatComposer() {
           placeholder="Describe the game you want to build…"
           rows={1}
           className="field-sizing-content max-h-48 min-h-10"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+          value={value}
+          onChange={(e) => onValueChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault()
               submit()
             }
           }}
-          disabled={isPending}
+          disabled={disabled}
         />
         <InputGroupAddon align="block-end">
           <DropdownMenu>
@@ -65,7 +70,7 @@ export function ChatComposer() {
             size="icon"
             className="ml-auto rounded-full"
             onClick={submit}
-            disabled={isPending || !prompt.trim()}
+            disabled={!canSubmit}
           >
             <ArrowUp />
           </Button>
