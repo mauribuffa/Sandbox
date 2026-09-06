@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Files seeded into a game's sandbox, not part of this app: they are read
+    // off disk and uploaded, never imported or bundled.
+    "lib/games/runtime/**",
   ]),
 ]);
 

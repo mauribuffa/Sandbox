@@ -1,3 +1,4 @@
+import { additionalFiles } from "@trigger.dev/build/extensions/core";
 import { defineConfig } from "@trigger.dev/sdk";
 
 export default defineConfig({
@@ -19,4 +20,15 @@ export default defineConfig({
     },
   },
   dirs: ["trigger"],
+  // Puts a dev task's working directory in the build directory, the way a
+  // deployed one's already is, so the copied paths below resolve the same in
+  // both.
+  legacyDevProcessCwdBehaviour: false,
+  build: {
+    // Nothing imports the files seeded into a new game's sandbox, so the
+    // bundler never sees them — they are copied into the build verbatim,
+    // keeping their path relative to this file, which is what lets
+    // `RUNTIME_DIR` in lib/daytona/utils.ts find them.
+    extensions: [additionalFiles({ files: ["./lib/games/runtime/**"] })],
+  },
 });

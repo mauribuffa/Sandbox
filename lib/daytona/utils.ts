@@ -1,4 +1,7 @@
+import type { Sandbox } from "@daytona/sdk"
 import { eq } from "drizzle-orm"
+import { readdir } from "node:fs/promises"
+import { join, posix, relative } from "node:path"
 
 import { daytonaClient } from "@/lib/daytona/client"
 import { db } from "@/lib/db"
@@ -17,13 +20,55 @@ export const GAME_PORT = 3000
 // would also match a server that died mid-boot.
 const HEALTH_CHECK = `curl -sf -o /dev/null http://localhost:${GAME_PORT}/`
 
-// Gives a game its own sandbox and seeds a placeholder page in it, then records
+// What every new sandbox starts out holding. The files are kept as real files
+// under lib/games/runtime rather than as strings in this module, so changing
+// what a game begins as is a matter of editing files.
+//
+// Nothing imports them, so they only reach a deployed task because
+// trigger.config.ts copies the directory into the build. That copy keeps each
+// path relative to the project root, and `legacyDevProcessCwdBehaviour: false`
+// puts dev's working directory in the build directory as well, so this one
+// expression resolves in dev and in production alike.
+const RUNTIME_DIR = join(process.cwd(), "lib", "games", "runtime")
+
+// Copies lib/games/runtime into a sandbox's game directory, tree and all. An
+// upload writes a file but does not create the directory it lands in, so every
+// folder is created first — the recursive read lists a directory before its
+// contents, which is the order they have to be created in.
+async function seedRuntimeFiles(sandbox: Sandbox) {
+  const entries = await readdir(RUNTIME_DIR, {
+    recursive: true,
+    withFileTypes: true,
+  })
+
+  // The sandbox is Linux, so the paths built from here on are posix ones.
+  const inSandbox = (entry: (typeof entries)[number]) =>
+    posix.join(GAME_DIR, relative(RUNTIME_DIR, join(entry.parentPath, entry.name)))
+
+  await sandbox.fs.createFolder(GAME_DIR, "755")
+
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      await sandbox.fs.createFolder(inSandbox(entry), "755")
+    }
+  }
+
+  await sandbox.fs.uploadFiles(
+    entries
+      .filter((entry) => entry.isFile())
+      .map((entry) => ({
+        source: join(entry.parentPath, entry.name),
+        destination: inSandbox(entry),
+      }))
+  )
+}
+
+// Gives a game its own sandbox and seeds the runtime files into it, then records
 // the sandbox id on the game so later turns can find it again.
 export async function createGameSandbox(gameId: string) {
   const sandbox = await daytonaClient.create()
 
-  await sandbox.fs.createFolder(GAME_DIR, "755")
-  await sandbox.fs.uploadFile(Buffer.from("New game"), `${GAME_DIR}/index.html`)
+  await seedRuntimeFiles(sandbox)
 
   await db.update(games).set({ sandboxId: sandbox.id }).where(eq(games.id, gameId))
 
