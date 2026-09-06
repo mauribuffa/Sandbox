@@ -34,10 +34,12 @@ export function ChatThread({
   gameId,
   initialMessages,
   initialSession,
+  onTurnEnd,
 }: {
   gameId: string
   initialMessages: UIMessage[]
   initialSession?: ChatSessionPersistedState
+  onTurnEnd: () => void
 }) {
   // The game id doubles as the chat id, so the agent's hooks know which game's
   // thread to read and save. Both callbacks are server actions, so the browser
@@ -64,6 +66,12 @@ export function ChatThread({
     // it back up from `lastEventId` rather than losing it. Only a game that has
     // already run a turn has a session to resume.
     resume: Boolean(initialSession),
+    // Fires once the turn's stream settles, which is the point at which the
+    // game's files have stopped changing — so it is where the preview beside
+    // this thread is worth reloading. A stopped or failed turn settles the
+    // stream too, and reloading is right there as well: both leave behind
+    // whatever files the model had already written.
+    onFinish: onTurnEnd,
   })
   const [prompt, setPrompt] = useState("")
 

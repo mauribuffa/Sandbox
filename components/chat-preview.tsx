@@ -1,6 +1,17 @@
-export function ChatPreview({ gameId }: { gameId: string }) {
+export function ChatPreview({
+  gameId,
+  revision,
+}: {
+  gameId: string
+  revision: number
+}) {
   return (
     <iframe
+      // A turn rewrites the game's files behind a URL that never changes, so
+      // nothing about `src` tells React the frame it already mounted is stale.
+      // The revision is what says so: a new key throws the old frame away and
+      // mounts a fresh one, which re-fetches whatever the sandbox serves now.
+      key={revision}
       // The route proxies the game out of its sandbox, so this is same-origin
       // and needs no token in the URL.
       src={`/api/games/${gameId}/preview`}
