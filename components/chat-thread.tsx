@@ -1,5 +1,6 @@
 "use client"
 
+import { useChat } from "@ai-sdk/react"
 import Image from "next/image"
 import { useState } from "react"
 
@@ -15,49 +16,11 @@ import {
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller"
 
-const messages = [
-  {
-    id: "1",
-    role: "user",
-    content: "I want a top-down racing game set on a neon city grid.",
-  },
-  {
-    id: "2",
-    role: "assistant",
-    content:
-      "Neon city grid it is. I'll start with a single-screen track, drift physics and a lap timer. Do you want AI opponents, or time trial only?",
-  },
-  {
-    id: "3",
-    role: "user",
-    content: "Three AI opponents, and give me boost pads.",
-  },
-  {
-    id: "4",
-    role: "assistant",
-    content:
-      "Done — three opponents with rubber-band difficulty, plus boost pads on the long straights that drain a small meter. Best lap is saved between runs.",
-  },
-  {
-    id: "5",
-    role: "user",
-    content: "Can the car leave a light trail behind it?",
-  },
-  {
-    id: "6",
-    role: "assistant",
-    content:
-      "Added. The trail fades after two seconds and doesn't collide with anything, so it reads as decoration rather than a hazard. Say the word and I'll make it solid.",
-  },
-] as const
-
-// Temporary stand-in until the thread is wired to the chat API route.
-function sendMessage(message: string) {
-  console.log(message)
-}
-
 export function ChatThread() {
+  const { messages, sendMessage, status, error } = useChat()
   const [prompt, setPrompt] = useState("")
+
+  const isBusy = status === "submitted" || status === "streaming"
 
   return (
     <MessageScrollerProvider defaultScrollPosition="end">
@@ -79,12 +42,23 @@ export function ChatThread() {
                           message.role === "user" ? "secondary" : "ghost"
                         }
                       >
-                        <BubbleContent>{message.content}</BubbleContent>
+                        <BubbleContent>
+                          {message.parts.map((part, index) =>
+                            part.type === "text" ? (
+                              <span key={index}>{part.text}</span>
+                            ) : null
+                          )}
+                        </BubbleContent>
                       </Bubble>
                     </MessageContent>
                   </Message>
                 </MessageScrollerItem>
               ))}
+              {error && (
+                <p className="text-sm text-destructive">
+                  Something went wrong. Please try again.
+                </p>
+              )}
             </MessageScrollerContent>
           </MessageScrollerViewport>
           <MessageScrollerButton />
@@ -93,8 +67,9 @@ export function ChatThread() {
           <ChatComposer
             value={prompt}
             onValueChange={setPrompt}
+            disabled={isBusy}
             onSubmit={() => {
-              sendMessage(prompt)
+              sendMessage({ text: prompt })
               setPrompt("")
             }}
           />
