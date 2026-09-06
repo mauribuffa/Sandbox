@@ -1,6 +1,8 @@
 "use server"
 
+import { anthropic } from "@ai-sdk/anthropic"
 import { auth } from "@clerk/nextjs/server"
+import { generateText } from "ai"
 import { refresh } from "next/cache"
 
 import { db } from "@/lib/db"
@@ -15,8 +17,21 @@ export async function createGame(prompt: string) {
     throw new Error("An active organization is required to create a game.")
   }
 
-  const title = prompt.trim()
-  if (!title) return
+  const trimmed = prompt.trim()
+  if (!trimmed) return
+
+  // Naming a game is a one-line job, so it runs on the cheapest, fastest model
+  // rather than the one that answers the chat. The prompt itself is the
+  // fallback when the model returns nothing usable.
+  const { text } = await generateText({
+    model: anthropic("claude-haiku-4-5"),
+    instructions:
+      "Write a short title for the game described by the user, at most five words. Reply with the title alone: no quotes, no punctuation at the end, no explanation.",
+    prompt: trimmed,
+    maxOutputTokens: 32,
+  })
+
+  const title = text.trim() || trimmed
 
   await db.insert(games).values({ orgId, title })
 
