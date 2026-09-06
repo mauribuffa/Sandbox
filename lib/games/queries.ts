@@ -26,7 +26,13 @@ export async function getGame(id: string) {
   if (!orgId) return null
 
   const [game] = await db
-    .select({ id: games.id, title: games.title, messages: games.messages })
+    .select({
+      id: games.id,
+      title: games.title,
+      messages: games.messages,
+      chatAccessToken: games.chatAccessToken,
+      lastEventId: games.lastEventId,
+    })
     .from(games)
     .where(and(eq(games.id, id), eq(games.orgId, orgId)))
     .limit(1)

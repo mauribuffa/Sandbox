@@ -15,5 +15,20 @@ export default async function GamePage({
   const game = await getGame(id)
   if (!game) notFound()
 
-  return <ChatThread gameId={game.id} initialMessages={game.messages} />
+  // The transport hydrates from the session the last turn persisted, so a fresh
+  // tab reconnects to an in-flight reply instead of creating a second session.
+  const initialSession = game.chatAccessToken
+    ? {
+        publicAccessToken: game.chatAccessToken,
+        lastEventId: game.lastEventId ?? undefined,
+      }
+    : undefined
+
+  return (
+    <ChatThread
+      gameId={game.id}
+      initialMessages={game.messages}
+      initialSession={initialSession}
+    />
+  )
 }
