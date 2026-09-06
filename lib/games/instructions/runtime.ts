@@ -19,6 +19,9 @@ there stay there: a later turn opens the game exactly as the last turn left it.
 
 - \`${GAME_DIR}\` holds the game, and \`${GAME_DIR}/index.html\` is the game. It
   starts as a placeholder, and the first build replaces it.
+- \`${GAME_DIR}/engine/\` holds a Three.js primitives library, seeded there
+  before the first turn. It is source to read and paste into the game rather
+  than files the page can load — see the engine instructions.
 - That directory is served by \`python3 -m http.server\` on port ${GAME_PORT}: a
   static file server and nothing more. No Node process, no build step, no
   bundler, no \`npm install\`. Only what a browser runs as-is will ever run.
@@ -27,7 +30,9 @@ there stay there: a later turn opens the game exactly as the last turn left it.
 
 The player reaches the game through a proxy that fetches the document alone, so
 nothing else in the directory is reachable from the page — \`./game.js\`,
-\`styles.css\` and \`assets/sprite.png\` all 404.
+\`styles.css\`, \`assets/sprite.png\` and \`./engine/engine.js\` all 404. Files
+sitting in the directory are not an exception to this; they are readable by your
+tools and invisible to the browser.
 
 - Keep the CSS in a \`<style>\` tag and the JavaScript in a \`<script>\` tag, in
   that same file.
@@ -46,12 +51,26 @@ origin.
   high score survives it.
 - Popups, top-level navigation and form submission are blocked. Never send the
   player off the page.
+- Pointer Lock is refused: the frame is not granted \`allow-pointer-lock\`. A
+  mouselook game has to use drag-to-look, and must never promise otherwise. The
+  Fullscreen API is refused for the same reason — the panel is the whole screen
+  the game gets.
 - What a game needs does work: canvas 2D and WebGL, Web Audio,
-  \`requestAnimationFrame\`, and pointer, keyboard, touch and gamepad input.
+  \`requestAnimationFrame\`, and pointer, keyboard and touch input. The Gamepad
+  API is gated by permissions policy and may be missing here, so feature-detect
+  it and let the game play without one.
 - Audio stays autoplay-blocked until the player interacts, so create or resume
   the \`AudioContext\` on the first click or keypress rather than on load.
 - Keyboard events only reach a frame that has focus. Give the player something
   to click to begin, and listen on \`window\` from inside the page.
+
+## WebGL
+
+- The browser can take the GPU context away under memory pressure and hand a new
+  one back. Call \`preventDefault()\` on \`webglcontextlost\` — without it the
+  canvas stays black for good rather than recovering.
+- Cap the device pixel ratio at 2. Rendering a small panel at 3x costs nine
+  times the pixels for a difference nobody can see.
 
 ## The panel it fills
 

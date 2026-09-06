@@ -1,1 +1,370 @@
-New game
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>New game</title>
+
+    <style>
+      /* The placeholder a game's sandbox starts out serving. It is replaced
+         whole by the first build, so nothing here needs to survive — but it is
+         the first thing anyone sees of a new game, and it demonstrates the
+         shape every game in this runtime takes: one self-contained document,
+         three.js from a pinned CDN, sized to its panel rather than to a window. */
+      :root {
+        --brand: #ea580c;
+        --brand-lit: #fb923c;
+        --cream: #ffe3d0;
+        --ink: #0b0d12;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: var(--ink);
+        color: var(--cream);
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      #stage { position: fixed; inset: 0; z-index: 1; }
+      #stage canvas { display: block; }
+
+      /* Warmth behind the cube that no light in the scene has to pay for. The
+         renderer is created with `alpha: true` and this sits under it, so the
+         glow reaches the eye around the cube rather than washing over it. */
+      #glow {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background: radial-gradient(58% 48% at 50% 34%, rgba(234, 88, 12, 0.32), transparent 70%);
+      }
+
+      #content {
+        position: fixed;
+        inset: auto 0 0 0;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.65rem;
+        padding: clamp(1rem, 4vmin, 2.5rem);
+        padding-bottom: clamp(1.5rem, 7vmin, 3.5rem);
+        text-align: center;
+        pointer-events: none;
+        /* Lifts the type off the cube without a hard edge between them. */
+        background: linear-gradient(to top, rgba(11, 13, 18, 0.92) 35%, transparent);
+      }
+
+      .eyebrow {
+        font-size: clamp(0.6rem, 1.7vmin, 0.72rem);
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--brand-lit);
+        opacity: 0.9;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.35rem, 6.2vmin, 2.6rem);
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        line-height: 1.05;
+      }
+
+      p {
+        margin: 0;
+        max-width: 34ch;
+        font-size: clamp(0.8rem, 2.3vmin, 1rem);
+        line-height: 1.5;
+        opacity: 0.66;
+      }
+
+      footer {
+        margin-top: 0.35rem;
+        font-size: clamp(0.58rem, 1.6vmin, 0.7rem);
+        letter-spacing: 0.06em;
+        opacity: 0.38;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Three.js comes off a CDN, and a CDN can be having a bad day. If the
+         module has not booted a few seconds in, a CSS cube takes over — the
+         panel keeps its shape and its palette instead of going black. */
+      #fallback {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        display: none;
+        place-items: center;
+        perspective: 700px;
+      }
+      body[data-state="offline"] #fallback { display: grid; }
+      body[data-state="offline"] #stage { display: none; }
+
+      .css-cube {
+        position: relative;
+        width: clamp(5rem, 22vmin, 8rem);
+        aspect-ratio: 1;
+        transform-style: preserve-3d;
+        animation: tumble 14s linear infinite;
+      }
+      .css-cube div {
+        position: absolute;
+        inset: 0;
+        border: 1px solid rgba(255, 227, 208, 0.5);
+      }
+      /* Same six faces, same order, same palette as the WebGL cube below. */
+      .css-cube div:nth-child(1) { background: #f0a278; transform: rotateY(90deg) translateZ(50%); }
+      .css-cube div:nth-child(2) { background: #c2410c; transform: rotateY(-90deg) translateZ(50%); }
+      .css-cube div:nth-child(3) { background: #ffe3d0; transform: rotateX(90deg) translateZ(50%); }
+      .css-cube div:nth-child(4) { background: #ea580c; transform: rotateX(-90deg) translateZ(50%); }
+      .css-cube div:nth-child(5) { background: #f9c4a6; transform: translateZ(50%); }
+      .css-cube div:nth-child(6) { background: #c2410c; transform: rotateY(180deg) translateZ(50%); }
+
+      @keyframes tumble {
+        from { transform: rotateX(-24deg) rotateY(0deg); }
+        to   { transform: rotateX(-24deg) rotateY(360deg); }
+      }
+
+      /* Dragged short enough and the copy would fill the panel on its own,
+         leaving the cube nowhere to be. The description is the first thing to
+         go, then the trimmings — a headline and a shape beat a full paragraph
+         with no room to sit above it. */
+      @media (max-height: 460px) {
+        #content { gap: 0.4rem; padding-bottom: clamp(0.7rem, 3.5vmin, 1.4rem); }
+        #content p { display: none; }
+      }
+      @media (max-height: 330px) {
+        .eyebrow, footer { display: none; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .css-cube { animation-duration: 60s; }
+      }
+    </style>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js"
+        }
+      }
+    </script>
+  </head>
+
+  <body data-state="loading">
+    <div id="stage"></div>
+    <div id="glow"></div>
+
+    <div id="fallback">
+      <div class="css-cube"><div></div><div></div><div></div><div></div><div></div><div></div></div>
+    </div>
+
+    <div id="content">
+      <div class="eyebrow">Preview</div>
+      <h1>Your game goes here</h1>
+      <p>Describe it in the chat and this panel becomes it. WebGL, Web Audio and three.js are already loaded.</p>
+      <footer id="footer">drag to spin</footer>
+    </div>
+
+    <script>
+      // Classic script, so it runs even if the module below never resolves.
+      setTimeout(() => {
+        if (document.body.dataset.state === "loading") {
+          document.body.dataset.state = "offline"
+          document.getElementById("footer").textContent = "offline · three.js unavailable"
+        }
+      }, 6000)
+    </script>
+
+    <script type="module">
+      import * as THREE from "three"
+
+      const stage = document.getElementById("stage")
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+
+      // The three cream tones are the product mark's cube faces resolved against
+      // its orange tile; the oranges are the tile itself. Face order for a
+      // BoxGeometry is [+X, -X, +Y, -Y, +Z, -Z], and the cube's rest pose below
+      // turns the three cream faces toward the camera — brightest on top, the
+      // same falloff the flat mark uses.
+      const FACES = [0xf0a278, 0xc2410c, 0xffe3d0, 0xea580c, 0xf9c4a6, 0xc2410c]
+
+      const scene = new THREE.Scene()
+      const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100)
+      camera.position.set(0, 0.8, 8)
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+      renderer.outputColorSpace = THREE.SRGBColorSpace
+      renderer.toneMapping = THREE.ACESFilmicToneMapping
+      renderer.toneMappingExposure = 1.05
+      stage.appendChild(renderer.domElement)
+
+      const cube = new THREE.Mesh(
+        new THREE.BoxGeometry(2.1, 2.1, 2.1),
+        FACES.map((color) => new THREE.MeshStandardMaterial({ color, roughness: 0.42, metalness: 0.08 }))
+      )
+
+      // Picking the hard edges out in cream is what keeps the silhouette legible
+      // when the cube turns a face edge-on to the light.
+      const edges = new THREE.LineSegments(
+        new THREE.EdgesGeometry(cube.geometry),
+        new THREE.LineBasicMaterial({ color: 0xffe3d0, transparent: true, opacity: 0.5 })
+      )
+      cube.add(edges)
+
+      // The mark's isometric rest pose: turned 45 degrees so two cream faces
+      // meet at the front edge, tipped forward so the top face reads as the lit one.
+      const pivot = new THREE.Group()
+      pivot.rotation.set(0.42, -Math.PI / 4, 0)
+      pivot.add(cube)
+      scene.add(pivot)
+
+      // Three lights, because two front faces have to read as two different
+      // creams: a key over the right shoulder, a softer fill on the left so that
+      // face does not fall back to pure orange, and a low rim behind to put the
+      // brand colour back into the silhouette.
+      scene.add(new THREE.HemisphereLight(0xffd9bd, 0x1b1005, 1.4))
+
+      const key = new THREE.DirectionalLight(0xfff3e6, 2.3)
+      key.position.set(4, 6.5, 5)
+      scene.add(key)
+
+      const fill = new THREE.DirectionalLight(0xffd9bd, 1.1)
+      fill.position.set(-6, 1.5, 4)
+      scene.add(fill)
+
+      const rim = new THREE.DirectionalLight(0xea580c, 1.3)
+      rim.position.set(-3, -2.5, -5)
+      scene.add(rim)
+
+      // A thin shell of orange motes, well outside the cube, purely to give the
+      // rotation something to be measured against.
+      const moteCount = 90
+      const motes = new Float32Array(moteCount * 3)
+      for (let i = 0; i < moteCount; i++) {
+        const direction = new THREE.Vector3(
+          Math.random() - 0.5,
+          Math.random() - 0.5,
+          Math.random() - 0.5
+        )
+          .normalize()
+          .multiplyScalar(4.5 + Math.random() * 5)
+        motes.set([direction.x, direction.y, direction.z], i * 3)
+      }
+      const moteGeometry = new THREE.BufferGeometry()
+      moteGeometry.setAttribute("position", new THREE.BufferAttribute(motes, 3))
+      const moteField = new THREE.Points(
+        moteGeometry,
+        new THREE.PointsMaterial({
+          color: 0xfb923c,
+          size: 0.055,
+          sizeAttenuation: true,
+          transparent: true,
+          opacity: 0.55,
+          depthWrite: false,
+        })
+      )
+      scene.add(moteField)
+
+      // Drag to spin, with the throw carrying on afterwards. It is here to prove
+      // the panel is live rather than a picture.
+      let spin = reducedMotion ? 0.06 : 0.32
+      let tilt = 0
+      let dragging = false
+      let lastX = 0
+      let lastY = 0
+
+      renderer.domElement.style.touchAction = "none"
+      renderer.domElement.addEventListener("pointerdown", (event) => {
+        dragging = true
+        lastX = event.clientX
+        lastY = event.clientY
+        renderer.domElement.setPointerCapture(event.pointerId)
+      })
+      renderer.domElement.addEventListener("pointermove", (event) => {
+        if (!dragging) return
+        spin += (event.clientX - lastX) * 0.012
+        tilt += (event.clientY - lastY) * 0.004
+        lastX = event.clientX
+        lastY = event.clientY
+      })
+      const endDrag = (event) => {
+        dragging = false
+        renderer.domElement.releasePointerCapture?.(event.pointerId)
+      }
+      renderer.domElement.addEventListener("pointerup", endDrag)
+      renderer.domElement.addEventListener("pointercancel", endDrag)
+
+      // REACH is the cube's half-diagonal as it tumbles, plus margin. HEADROOM
+      // is the share of the panel's height it is allowed to fill, which leaves
+      // the rest for the copy. LIFT is how far up that remaining room it sits.
+      const REACH = 1.95
+      const HEADROOM = 0.52
+      const LIFT = 0.8
+
+      // Sized to the element, not the window: this page lives in a panel the
+      // user can drag to any shape, and `window.innerWidth` is the wrong number
+      // the moment they do.
+      function resize() {
+        const { width, height } = stage.getBoundingClientRect()
+        if (!width || !height) return
+
+        camera.aspect = width / height
+        camera.updateProjectionMatrix()
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+        renderer.setSize(width, height, false)
+
+        // Fitting vertically alone is what crops the cube in a narrow panel and
+        // strands it in a wide one, so both axes get a distance and the looser
+        // wins. Only the vertical one gives up room to the copy.
+        const vFov = THREE.MathUtils.degToRad(camera.fov)
+        const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect)
+        camera.position.z = Math.max(
+          REACH / (HEADROOM * Math.tan(vFov / 2)),
+          REACH / Math.tan(hFov / 2)
+        )
+
+        // Aiming below the cube lifts it up the frame, instead of leaving it
+        // centred and overlapping the text.
+        const halfHeight = camera.position.z * Math.tan(vFov / 2)
+        camera.lookAt(0, -halfHeight * (1 - HEADROOM) * LIFT, 0)
+      }
+
+      new ResizeObserver(resize).observe(stage)
+      resize()
+
+      const clock = new THREE.Clock()
+      let booted = false
+
+      renderer.setAnimationLoop(() => {
+        const dt = Math.min(clock.getDelta(), 1 / 15)
+        const elapsed = clock.getElapsedTime()
+
+        if (!dragging) spin += (0.32 - spin) * (1 - Math.exp(-1.2 * dt))
+
+        pivot.rotation.y += spin * dt
+        pivot.rotation.x = 0.42 + tilt + (reducedMotion ? 0 : Math.sin(elapsed * 0.6) * 0.06)
+        pivot.position.y = reducedMotion ? 0 : Math.sin(elapsed * 0.9) * 0.09
+        moteField.rotation.y -= dt * 0.04
+
+        renderer.render(scene, camera)
+
+        // Flipped after the first frame actually reaches the screen, which is
+        // what the fallback timer above is waiting on.
+        if (!booted) {
+          booted = true
+          document.body.dataset.state = "ready"
+          document.getElementById("footer").textContent =
+            `three.js r${THREE.REVISION} · drag to spin`
+        }
+      })
+    </script>
+  </body>
+</html>

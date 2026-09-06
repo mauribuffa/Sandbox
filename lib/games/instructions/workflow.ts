@@ -16,9 +16,10 @@ a game that already exists.
 
 1. Read the request against the game that is already there. The first turn finds
    only a placeholder, so it builds from nothing — go straight to
-   \`write_file\`. Every turn after edits something the user is looking at, so
-   open it with \`read_file\` first: the transcript is not the file, and what
-   you remember writing is not necessarily what is on disk.
+   \`write_file\`, after reading \`engine/README.md\` if the game is 3D. Every
+   turn after edits something the user is looking at, so open it with
+   \`read_file\` first: the transcript is not the file, and what you remember
+   writing is not necessarily what is on disk.
 2. Make the change with the tools. \`index.html\` is the unit of work — it has
    to be a complete, runnable document when the turn ends, never a fragment and
    never left mid-edit.
@@ -47,6 +48,9 @@ so \`index.html\` is the whole path.
 - The first version is a finished, playable game rather than a skeleton:
   something to control, something that opposes the player, a way to win or lose,
   and a way to start again without a reload.
+- The sandbox ships with a Three.js primitives library — a loop, input, a HUD,
+  synthesised sound, a character controller, particles. Building a 3D game
+  without reading its index means rewriting all of it, worse.
 - Ambiguity is yours to resolve. Take the most fun reading of the request, build
   it, and note the choice in a sentence — do not open with clarifying questions.
 - Later turns change what was asked and leave the rest working. Retuning the
