@@ -3,12 +3,15 @@
 import { useChat } from "@ai-sdk/react"
 import type { ChatSessionPersistedState } from "@trigger.dev/sdk/chat"
 import { useTriggerChatTransport } from "@trigger.dev/sdk/chat/react"
-import type { UIMessage } from "ai"
+import { getToolName, isToolUIPart } from "ai"
+import type { DynamicToolUIPart, ToolUIPart, UIMessage } from "ai"
+import { CheckIcon, CircleXIcon } from "lucide-react"
 import Image from "next/image"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { ChatComposer } from "@/components/chat-composer"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
+import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker"
 import { Message, MessageAvatar, MessageContent } from "@/components/ui/message"
 import {
   MessageScroller,
@@ -18,6 +21,7 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller"
+import { Spinner } from "@/components/ui/spinner"
 import {
   mintGameChatAccessToken,
   startGameChatSession,
@@ -114,12 +118,20 @@ export function ChatThread({
                           message.role === "user" ? "secondary" : "ghost"
                         }
                       >
-                        <BubbleContent>
-                          {message.parts.map((part, index) =>
-                            part.type === "text" ? (
-                              <span key={index}>{part.text}</span>
-                            ) : null
-                          )}
+                        <BubbleContent className="flex flex-col gap-2">
+                          {message.parts.map((part, index) => {
+                            if (part.type === "text") {
+                              return <span key={index}>{part.text}</span>
+                            }
+
+                            if (isToolUIPart(part)) {
+                              return (
+                                <ToolMarker key={part.toolCallId} part={part} />
+                              )
+                            }
+
+                            return null
+                          })}
                         </BubbleContent>
                       </Bubble>
                     </MessageContent>
@@ -149,5 +161,58 @@ export function ChatThread({
         </div>
       </div>
     </MessageScrollerProvider>
+  )
+}
+
+// A tool call arrives as one part that is updated in place as the turn runs:
+// its input streams in, the call goes out, and it settles on either an output
+// or an error. Anything short of settling is still in flight.
+function toolStatus(part: ToolUIPart | DynamicToolUIPart) {
+  switch (part.state) {
+    case "output-available":
+      return "done"
+    case "output-error":
+      return "failed"
+    default:
+      return "active"
+  }
+}
+
+// Every game tool takes a `path`, and the file being touched is the readable
+// half of the line. It is picked out defensively: the part is typed against the
+// whole tool set, and the input is half-parsed while it is still streaming.
+function toolPath(input: unknown) {
+  if (input && typeof input === "object" && "path" in input) {
+    const { path } = input as { path?: unknown }
+
+    if (typeof path === "string") return path
+  }
+
+  return undefined
+}
+
+function ToolMarker({ part }: { part: ToolUIPart | DynamicToolUIPart }) {
+  const status = toolStatus(part)
+  const path = toolPath(part.input)
+
+  return (
+    <Marker>
+      <MarkerIcon>
+        {status === "active" && <Spinner />}
+        {status === "done" && <CheckIcon className="text-foreground" />}
+        {status === "failed" && <CircleXIcon className="text-destructive" />}
+      </MarkerIcon>
+      <MarkerContent
+        className={status === "failed" ? "text-destructive" : undefined}
+      >
+        {getToolName(part)}
+        {path && <span className="ml-1.5 font-mono text-xs">{path}</span>}
+        {/* The reason is the whole point of showing a failure — the model gets
+            another attempt at the call, and this says what it is retrying. */}
+        {part.state === "output-error" && (
+          <span className="ml-1.5">— {part.errorText}</span>
+        )}
+      </MarkerContent>
+    </Marker>
   )
 }
