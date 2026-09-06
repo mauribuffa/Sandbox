@@ -32,6 +32,7 @@ export async function getGame(id: string) {
       messages: games.messages,
       chatAccessToken: games.chatAccessToken,
       lastEventId: games.lastEventId,
+      sandboxId: games.sandboxId,
     })
     .from(games)
     .where(and(eq(games.id, id), eq(games.orgId, orgId)))

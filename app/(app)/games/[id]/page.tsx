@@ -27,6 +27,7 @@ export default async function GamePage({
   return (
     <GameChat
       gameId={game.id}
+      sandboxId={game.sandboxId}
       initialMessages={game.messages}
       initialSession={initialSession}
     />
