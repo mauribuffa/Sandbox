@@ -27,7 +27,37 @@ export async function createGameSandbox(gameId: string) {
 
   await db.update(games).set({ sandboxId: sandbox.id }).where(eq(games.id, gameId))
 
-  return sandbox
+  return { sandbox }
+}
+
+// Hands back a running sandbox for a game, whatever state the game was left in.
+// Tools that read or write the game's files can then treat the sandbox as a
+// given rather than each re-deriving it from the row.
+//
+// The two cases it absorbs are a game whose thread never reached `onChatStart`,
+// so nothing has created a sandbox for it yet, and the far more common one of a
+// sandbox that auto-stopped between sessions — its files survive, but nothing
+// runs in it until it is started again.
+export async function getGameSandbox(gameId: string) {
+  const [game] = await db
+    .select({ sandboxId: games.sandboxId })
+    .from(games)
+    .where(eq(games.id, gameId))
+    .limit(1)
+
+  // A freshly created sandbox is already running and already seeded, so it can
+  // be handed straight back.
+  if (!game?.sandboxId) {
+    return createGameSandbox(gameId)
+  }
+
+  const sandbox = await daytonaClient.get(game.sandboxId)
+
+  if (sandbox.state !== "started") {
+    await sandbox.start()
+  }
+
+  return { sandbox }
 }
 
 // Brings up the static server serving the game's page, unless one is already
