@@ -17,6 +17,10 @@ export const games = pgTable("games", {
   // finished reply against a stale cursor.
   chatAccessToken: text("chat_access_token"),
   lastEventId: text("last_event_id"),
+  // The Daytona sandbox the game's files live in. Written by
+  // `createGameSandbox` once the chat's first turn starts, so it is null for
+  // the window between the row being inserted and that sandbox existing.
+  sandboxId: text("sandbox_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

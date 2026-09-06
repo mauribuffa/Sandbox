@@ -3,6 +3,7 @@ import { chat, upsertIncomingMessage } from "@trigger.dev/sdk/ai"
 import { streamText } from "ai"
 import { eq } from "drizzle-orm"
 
+import { createGameSandbox } from "@/lib/daytona/utils"
 import { db } from "@/lib/db"
 import { games } from "@/lib/db/schema"
 
@@ -33,6 +34,12 @@ export const gameChat = chat.agent({
     }
 
     return stored
+  },
+
+  // `chatId` is the game id, and this fires once on the thread's first turn, so
+  // it is where a game gets the sandbox its files will live in.
+  onChatStart: async ({ chatId }) => {
+    await createGameSandbox(chatId)
   },
 
   // One statement, so a reload can never read the finished reply against the
