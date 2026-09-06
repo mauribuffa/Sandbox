@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm"
 import { createGameSandbox } from "@/lib/daytona/utils"
 import { db } from "@/lib/db"
 import { games } from "@/lib/db/schema"
+import { gameInstructions } from "@/lib/games/instructions"
 
 export const gameChat = chat.agent({
   id: "game-chat",
@@ -56,6 +57,10 @@ export const gameChat = chat.agent({
       // Spread first, so anything set below still wins.
       ...chat.toStreamTextOptions(),
       model: anthropic("claude-sonnet-5"),
+      // An array rather than one string: the blocks are assembled in
+      // lib/games/instructions, and the provider gets them as separate system
+      // messages.
+      instructions: gameInstructions,
       messages,
       abortSignal: signal,
     }),

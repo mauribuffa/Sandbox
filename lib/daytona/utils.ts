@@ -4,8 +4,9 @@ import { daytonaClient } from "@/lib/daytona/client"
 import { db } from "@/lib/db"
 import { games } from "@/lib/db/schema"
 
-// Where the game's files live inside its sandbox.
-const GAME_DIR = "/home/daytona/game"
+// Where the game's files live inside its sandbox. Exported so the system prompt
+// names the directory the server is actually serving.
+export const GAME_DIR = "/home/daytona/game"
 
 // The port the game's static server listens on inside the sandbox. Exported so
 // a caller minting a preview URL signs the port the server is actually on.
