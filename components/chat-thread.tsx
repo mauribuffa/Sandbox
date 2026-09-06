@@ -3,7 +3,7 @@
 import { useChat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
 import Image from "next/image"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { ChatComposer } from "@/components/chat-composer"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
@@ -31,6 +31,20 @@ export function ChatThread({
     messages: initialMessages,
   })
   const [prompt, setPrompt] = useState("")
+
+  // A game created from the home page composer arrives with the user's prompt
+  // already stored as the only message, so the opening reply is requested here
+  // instead of being sent by the composer. `sendMessage` with no message asks
+  // for a response to the thread as it stands. The ref keeps the request from
+  // going out twice when React remounts the component in development.
+  const requestedOpeningReply = useRef(false)
+  useEffect(() => {
+    if (requestedOpeningReply.current) return
+    if (initialMessages.at(-1)?.role !== "user") return
+
+    requestedOpeningReply.current = true
+    sendMessage()
+  }, [initialMessages, sendMessage])
 
   const isBusy = status === "submitted" || status === "streaming"
 
