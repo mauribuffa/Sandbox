@@ -5,7 +5,7 @@ import type { ChatSessionPersistedState } from "@trigger.dev/sdk/chat"
 import { useTriggerChatTransport } from "@trigger.dev/sdk/chat/react"
 import type { UIMessage } from "ai"
 import Image from "next/image"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import { ChatComposer } from "@/components/chat-composer"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
@@ -46,7 +46,13 @@ export function ChatThread({
     sessions: initialSession ? { [gameId]: initialSession } : undefined,
   })
 
-  const { messages, sendMessage, status, error } = useChat({
+  const {
+    messages,
+    sendMessage,
+    stop: stopStream,
+    status,
+    error,
+  } = useChat({
     id: gameId,
     messages: initialMessages,
     transport,
@@ -77,6 +83,16 @@ export function ChatThread({
   }, [initialMessages, initialSession, sendMessage])
 
   const isBusy = status === "submitted" || status === "streaming"
+
+  // `useChat`'s own `stop` only settles the local stream — the run keeps
+  // generating server-side, and on a stream picked back up by `resume` the
+  // signal never reaches the backend at all. `stopGeneration` sends the stop
+  // the agent's `abortSignal` is waiting on; `stopStream` then flips the UI
+  // back to ready and keeps whatever streamed in before the interruption.
+  const stopGenerating = useCallback(() => {
+    transport.stopGeneration(gameId)
+    stopStream()
+  }, [transport, gameId, stopStream])
 
   return (
     <MessageScrollerProvider defaultScrollPosition="end">
@@ -123,7 +139,8 @@ export function ChatThread({
           <ChatComposer
             value={prompt}
             onValueChange={setPrompt}
-            disabled={isBusy}
+            isStreaming={isBusy}
+            onStop={stopGenerating}
             onSubmit={() => {
               sendMessage({ text: prompt })
               setPrompt("")

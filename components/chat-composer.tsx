@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowUp, ChevronDown, Grip } from "lucide-react"
+import { ArrowUp, ChevronDown, Grip, Square } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -21,6 +21,11 @@ type ChatComposerProps = {
   onValueChange: (value: string) => void
   onSubmit: () => void
   disabled?: boolean
+  // A reply in flight takes the button over: it turns into a stop control that
+  // interrupts the turn instead of sending. Only a composer whose reply can be
+  // interrupted passes these.
+  isStreaming?: boolean
+  onStop?: () => void
 }
 
 export function ChatComposer({
@@ -28,8 +33,11 @@ export function ChatComposer({
   onValueChange,
   onSubmit,
   disabled,
+  isStreaming,
+  onStop,
 }: ChatComposerProps) {
-  const canSubmit = !disabled && value.trim().length > 0
+  const canStop = Boolean(isStreaming && onStop)
+  const canSubmit = !disabled && !isStreaming && value.trim().length > 0
 
   function submit() {
     if (!canSubmit) return
@@ -51,7 +59,7 @@ export function ChatComposer({
               submit()
             }
           }}
-          disabled={disabled}
+          disabled={disabled || isStreaming}
         />
         <InputGroupAddon align="block-end">
           <DropdownMenu>
@@ -69,10 +77,11 @@ export function ChatComposer({
           <Button
             size="icon"
             className="ml-auto rounded-full"
-            onClick={submit}
-            disabled={!canSubmit}
+            aria-label={canStop ? "Stop generating" : "Send message"}
+            onClick={canStop ? onStop : submit}
+            disabled={!canStop && !canSubmit}
           >
-            <ArrowUp />
+            {canStop ? <Square className="fill-current" /> : <ArrowUp />}
           </Button>
         </InputGroupAddon>
       </InputGroup>
