@@ -1,6 +1,7 @@
 "use client"
 
 import { useChat } from "@ai-sdk/react"
+import type { UIMessage } from "ai"
 import Image from "next/image"
 import { useState } from "react"
 
@@ -16,8 +17,19 @@ import {
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller"
 
-export function ChatThread() {
-  const { messages, sendMessage, status, error } = useChat()
+export function ChatThread({
+  gameId,
+  initialMessages,
+}: {
+  gameId: string
+  initialMessages: UIMessage[]
+}) {
+  // The game id doubles as the chat id, so the transport sends it to the API
+  // route as `id` and the route knows which game's thread to save.
+  const { messages, sendMessage, status, error } = useChat({
+    id: gameId,
+    messages: initialMessages,
+  })
   const [prompt, setPrompt] = useState("")
 
   const isBusy = status === "submitted" || status === "streaming"
